@@ -5,6 +5,8 @@ on:
     branches:
       - development
       - main
+    tags:
+      - 'v6.0'
     paths:
       - '.github/workflows/ios-build-scripts.yml'
       - 'apple/**'
@@ -50,6 +52,16 @@ jobs:
       - name: print ffbuild logs
         if: ${{ failure() }}
         run: '[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log'
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            prebuilt/ios-xcframework/ffmpeg-kit-audio-*-ios-xcframework.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-main-on-macos-ventura:
     name: ios main on ventura
     runs-on: macos-13
@@ -73,6 +85,18 @@ jobs:
       - name: print ffbuild logs
         if: ${{ failure() }}
         run: '[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log'
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v6.0')
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v6.0
+          name: Release v6.0
+          files: |
+            prebuilt/ios-xcframework/ffmpeg-kit-audio-*-ios-xcframework.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-min-sdk-10-on-macos-ventura:
     name: ios min sdk 10 on ventura
     runs-on: macos-13
@@ -89,6 +113,8 @@ jobs:
       - name: set up xcode
         run: echo "export DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer" > ~/.xcode.for.ffmpeg.kit.sh
       - name: run the build script
+        env:
+          IOS_MIN_VERSION: "10.0"
         run: ./ios.sh --target=10 --enable-ios-audiotoolbox --enable-ios-bzip2 --enable-ios-libiconv --enable-ios-zlib
       - name: print build logs
         if: ${{ always() }}
